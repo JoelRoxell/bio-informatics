@@ -15,8 +15,8 @@ def main():
     """ global alignment alg. (needleman-wunsch)
     """
 
-    seq_1 = 'TCCTA'  # "ATCGAT"
-    seq_2 = 'TCATA'  # "ATACGT"
+    seq_1 = 'ATCGAT'  # ""
+    seq_2 = 'ATACGT'  # ""
 
     seq_1_length = len(seq_1) + 1
     seq_2_length = len(seq_2) + 1
@@ -88,7 +88,7 @@ def main():
 
         if current == DIAG:
             align_1 += seq_1[i - 1]
-            align_2 += seq_2[i - 1]
+            align_2 += seq_2[j - 1]
             i -= 1
             j -= 1
         elif current == LEFT:
@@ -104,11 +104,14 @@ def main():
     align_1 = align_1[::-1]
     align_2 = align_2[::-1]
 
+    print(seq_1)
+    print(seq_2)
+
     # Display results and matches
     print(align_1)
     matches = 0
 
-    for i in range(0, seq_1_length - 1):
+    for i in range(0, seq_1_length):
         if align_1[i] == align_2[i]:
             print('|', end='')
             matches += 1
