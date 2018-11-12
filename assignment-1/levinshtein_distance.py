@@ -4,6 +4,7 @@ import os
 MATCH_SCORE = 2
 GAP_PENALTY = 2
 MISMATCH_SCORE = -1
+PENALTY = 1
 
 STOP = 0
 UP = 1
@@ -15,20 +16,20 @@ def main():
     """ global alignment alg. (needleman-wunsch)
     """
 
-    seq_1 = 'ATCGAT'  # ""
-    seq_2 = 'ATACGT'  # ""
+    seq_1 = 'azced'
+    seq_2 = 'abcdef'
 
     seq_1_length = len(seq_1) + 1
     seq_2_length = len(seq_2) + 1
+    largest = max(seq_1_length, seq_2_length)
 
-    score_m = np.zeros((seq_1_length, seq_1_length))
-    trace_m = np.zeros((seq_1_length, seq_1_length))
+    score_m = np.zeros((largest, largest))
+    trace_m = np.zeros((largest, largest))
 
-    if os.getenv("LOCAL") is None:
-        for i in range(1, seq_1_length):
-            for j in range(1, seq_2_length):
-                score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
-                score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
+    for i in range(1, seq_1_length):
+        for j in range(1, seq_2_length):
+            score_m[i][0] = i
+            score_m[0][j] = j
 
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
@@ -36,14 +37,14 @@ def main():
             direction = DIAG
 
             if seq_1[i - 1] == seq_2[j-1]:
-                diagonal_score = score_m[i-1, j-1] + MATCH_SCORE
+                diagonal_score = score_m[i-1, j-1]
             else:
-                diagonal_score = score_m[i-1, j-1] + MISMATCH_SCORE
+                diagonal_score = score_m[i-1, j-1] + PENALTY
 
-            pre_up_score = score_m[i - 1][j] - GAP_PENALTY
-            pre_left_score = score_m[i][j - 1] - GAP_PENALTY
+            pre_up_score = score_m[i - 1][j] + PENALTY
+            pre_left_score = score_m[i][j - 1] + PENALTY
 
-            score = max(diagonal_score,
+            score = min(diagonal_score,
                         pre_up_score,
                         pre_left_score)
 
@@ -53,7 +54,7 @@ def main():
                 direction = LEFT
 
             trace_m[i][j] = direction
-            score_m[i][j] = max(score, 0) if os.getenv("LOCAL") else score
+            score_m[i][j] = max(score, 0)
 
     print("Score matrix")
 
@@ -141,6 +142,9 @@ def main():
     hamming_distance = 0
 
     for i in range(0, seq_1_length):
+        if i >= seq_1_length or i >= seq_2_length:
+            break
+
         if align_1[i] == align_2[i]:
             print('|', end='')
             matches += 1
@@ -153,7 +157,9 @@ def main():
     # Matches / possible matches aka string len
     print("\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
         matches/seq_1_length * 100))
-    print("\x1b[48;5;57mHamming distance: {}\x1b[0m\n".format(hamming_distance))
+    print("\x1b[48;5;57mHamming distance: {}\x1b[0m".format(hamming_distance))
+    print("\x1b[48;5;23mOps. required: {}\x1b[0m\n".format(
+        int(score_m[seq_1_length-1][seq_2_length-1])))
 
 
 if __name__ == "__main__":
