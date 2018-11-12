@@ -24,10 +24,11 @@ def main():
     score_m = np.zeros((seq_1_length, seq_1_length))
     trace_m = np.zeros((seq_1_length, seq_1_length))
 
-    for i in range(1, seq_1_length):
-        for j in range(1, seq_2_length):
-            score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
-            score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
+    if os.getenv("LOCAL") is None:
+        for i in range(1, seq_1_length):
+            for j in range(1, seq_2_length):
+                score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
+                score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
 
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
@@ -75,8 +76,34 @@ def main():
 
         print()
 
-    # print("\nTrace matrix")
-    # print(trace_m)
+    print("\nTrace matrix")
+
+    first_row = ' ' * 6
+
+    for char in seq_2:
+        first_row += "{:>5}".format(char)
+
+    print(first_row)
+
+    for i in range(0, seq_1_length):
+        if (i == 0):
+            print(' ', end='')
+        else:
+            print(seq_1[i - 1], end='')
+            # print(trace_m)
+
+        for j in range(0, seq_2_length):
+            pos = direction = int(trace_m[i][j])
+            if direction == LEFT:
+                pos = 'L'
+            elif direction == UP:
+                pos = 'U'
+            elif direction == DIAG:
+                pos = 'D'
+
+            print('{:>5}'.format(pos), end='')
+
+        print()
 
     align_1 = ''
     align_2 = ''
@@ -104,25 +131,28 @@ def main():
     align_1 = align_1[::-1]
     align_2 = align_2[::-1]
 
-    print(seq_1)
-    print(seq_2)
+    # print(seq_1)
+    # print(seq_2)
 
     # Display results and matches
     print(align_1)
     matches = 0
+    hamming_distance = 0
 
     for i in range(0, seq_1_length):
         if align_1[i] == align_2[i]:
             print('|', end='')
             matches += 1
         else:
+            hamming_distance += 1
             print(' ', end='')
     print()
     print(align_2)
 
     # Matches / possible matches aka string len
-    print("\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
+    print("\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
         matches/seq_1_length * 100))
+    print("\x1b[48;5;57mHamming distance: {}\x1b[0m".format(hamming_distance))
 
 
 if __name__ == "__main__":
