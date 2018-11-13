@@ -22,7 +22,7 @@ def main():
     seq_2_length = len(seq_2) + 1
 
     score_m = np.zeros((seq_1_length, seq_1_length))
-    trace_m = np.zeros((seq_1_length, seq_1_length))
+    trace_m = np.zeros((seq_1_length, seq_2_length))
 
     if os.getenv("LOCAL") is None:
         for i in range(1, seq_1_length):
@@ -111,7 +111,7 @@ def main():
     i = seq_1_length - 1
     j = seq_2_length - 1
 
-    while(trace_m[i][j] != STOP):
+    while(trace_m[i][j]):
         current = trace_m[i][j]
 
         if current == DIAG:

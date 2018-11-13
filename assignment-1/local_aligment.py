@@ -1,9 +1,11 @@
 import numpy as np
 import os
 
+from utils.print_m import print_matrix
+
 MATCH_SCORE = 2
 GAP_PENALTY = 2
-MISMATCH_SCORE = -1
+MISMATCH_SCORE = 1
 
 STOP = 0
 UP = 1
@@ -12,9 +14,6 @@ DIAG = 3
 
 
 def main():
-    """ global alignment alg. (needleman-wunsch)
-    """
-
     seq_1 = 'PAWHEAE'
     seq_2 = 'HDAGAWGHEQ'
 
@@ -25,10 +24,8 @@ def main():
     score_m = np.zeros((largest, largest))
     trace_m = np.zeros((largest, largest))
 
-    # for i in range(1, seq_1_length):
-    #     for j in range(1, seq_2_length):
-    #         score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
-    #         score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
+    optimal_score = 0
+    optimal_location = None
 
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
@@ -38,7 +35,7 @@ def main():
             if seq_1[i - 1] == seq_2[j-1]:
                 diagonal_score = score_m[i-1, j-1] + MATCH_SCORE
             else:
-                diagonal_score = score_m[i-1, j-1] + MISMATCH_SCORE
+                diagonal_score = score_m[i-1, j-1] - MISMATCH_SCORE
 
             pre_up_score = score_m[i - 1][j] - GAP_PENALTY
             pre_left_score = score_m[i][j - 1] - GAP_PENALTY
@@ -55,63 +52,18 @@ def main():
             trace_m[i][j] = direction
             score_m[i][j] = max(score, 0)
 
-    print("Score matrix")
+            if score > optimal_score:
+                optimal_score = score
+                optimal_location = (i, j)
 
-    first_row = ' ' * 6
-
-    for char in seq_2:
-        first_row += "{:>5}".format(char)
-
-    print(first_row)
-
-    for i in range(0, seq_1_length):
-        if (i == 0):
-            print(' ', end='')
-        else:
-            print(seq_1[i - 1], end='')
-            # print(trace_m)
-
-        for j in range(0, seq_2_length):
-            print('{:>5}'.format(int(score_m[i][j])), end='')
-
-        print()
-
-    print("\nTrace matrix")
-
-    first_row = ' ' * 6
-
-    for char in seq_2:
-        first_row += "{:>5}".format(char)
-
-    print(first_row)
-
-    for i in range(0, seq_1_length):
-        if (i == 0):
-            print(' ', end='')
-        else:
-            print(seq_1[i - 1], end='')
-            # print(trace_m)
-
-        for j in range(0, seq_2_length):
-            pos = direction = int(trace_m[i][j])
-            if direction == LEFT:
-                pos = 'L'
-            elif direction == UP:
-                pos = 'U'
-            elif direction == DIAG:
-                pos = 'D'
-
-            print('{:>5}'.format(pos), end='')
-
-        print()
-    print()
+    print_matrix(seq_1, seq_2, score_m, "score")
+    print_matrix(seq_1, seq_2, trace_m, "trace")
 
     align_1 = ''
     align_2 = ''
-    i = seq_1_length - 1
-    j = seq_2_length - 1
+    i, j = optimal_location
 
-    while(trace_m[i][j] != STOP):
+    while(score_m[i][j] != 0):
         current = trace_m[i][j]
 
         if current == DIAG:
@@ -132,30 +84,28 @@ def main():
     align_1 = align_1[::-1]
     align_2 = align_2[::-1]
 
-    # print(seq_1)
-    # print(seq_2)
-
     # Display results and matches
     print(align_1)
     matches = 0
     hamming_distance = 0
 
-    for i in range(0, seq_1_length):
-        if i >= seq_1_length or i >= seq_2_length:
-            break
-
+    for i in range(0, len(align_1)):
         if align_1[i] == align_2[i]:
             print('|', end='')
             matches += 1
         else:
             hamming_distance += 1
             print(' ', end='')
+
     print()
     print(align_2)
 
+    print("\noptimal score location: {}".format(optimal_location))
+    print("optimal score: {}".format(optimal_score))
+
     # Matches / possible matches aka string len
     print("\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
-        matches/seq_1_length * 100))
+        matches/max(seq_1_length, seq_2_length) * 100))
     print("\x1b[48;5;57mHamming distance: {}\x1b[0m\n".format(hamming_distance))
 
 
