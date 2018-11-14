@@ -14,23 +14,23 @@ DIAG = 3
 
 
 def main():
-    seq_1 = 'ATCGAT'  # "ATTA"  #
-    seq_2 = 'ATACGT'  # "ATTTTA"  #
+    seq_1 = "ATTA"  # "ATCGAT"  #
+    seq_2 = "ATTTTA"  # "ATACGT"  #
 
+    # Add one index for staring cells.
     seq_1_length = len(seq_1) + 1
     seq_2_length = len(seq_2) + 1
 
+    # Initialize score matrix and trace.
     score_m = np.zeros((seq_1_length, seq_2_length))
     trace_m = np.empty((seq_1_length, seq_2_length), dtype=object)
-
-    optimal_score = 0
-    optimal_location = None
 
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
             score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
             score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
 
+    # Calculate scores for each cell.
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
             diagonal_score = 0
@@ -46,9 +46,6 @@ def main():
             score = max(diagonal_score,
                         pre_up_score,
                         pre_left_score)
-
-            # TODO: if score is equal more than one dir, store arr
-            # print(score, pre_up_score, pre_left_score, diagonal_score)
 
             dirs = []
 
@@ -78,40 +75,8 @@ def main():
             print(' ', end='')
         else:
             print(seq_1[i - 1], end='')
-            # print(trace_m)
         for j in range(0, seq_2_length):
             print('{:>5}'.format(int(score_m[i][j])), end='')
-
-        print()
-
-    print("\nTrace matrix")
-
-    first_row = ' ' * 6
-
-    for char in seq_2:
-        first_row += "{:>5}".format(char)
-
-    print(first_row)
-
-    for i in range(0, seq_1_length):
-        if (i == 0):
-            print(' ', end='')
-        else:
-            print(seq_1[i - 1], end='')
-            # print(trace_m)
-
-        for j in range(0, seq_2_length):
-            directions = trace_m[i][j]
-
-            if directions is None:
-                pos = ' '
-            elif len(directions) == 1:
-                pos = directions[0]
-            else:
-                pos = '|'.join(str(x) for x in directions)
-                # print(pos)
-
-            print('{:>5}'.format(pos), end='')
 
         print()
     print()
@@ -123,7 +88,7 @@ def main():
         current = trace[i][j]
 
         if (current is None):
-            print(a, b)
+            # End of search, add resulting paths to solutions & exit.
             solutions.append([a, b])
 
             return
@@ -149,35 +114,41 @@ def main():
 
             for direction in current:
                 trace_copy[i][j] = [direction]
+
                 trace_back(location, trace_copy, a, b)
 
     trace_back((seq_1_length - 1, seq_2_length - 1), trace_m, "", "")
 
-    return
-    # TODO: pretty print solutions
+    print("Optimal solutions: {}".format(len(solutions)))
 
-    # Reverse the collected results
-    align_1 = align_1[::-1]
-    align_2 = align_2[::-1]
+    for solution in solutions:
+        align_1 = solution[0][::-1]
+        align_2 = solution[1][::-1]
+        matches = 0
+        hamming_distance = 0
 
-    # Display results and matches
-    print(align_1)
-    matches = 0
-    hamming_distance = 0
+        print(align_1)
 
-    for i in range(0, len(align_1)):
-        if align_1[i] == align_2[i]:
-            print('|', end='')
-            matches += 1
-        else:
-            hamming_distance += 1
-            print(' ', end='')
-    print()
-    print(align_2)
+        for i in range(0, len(align_1)):
+            if align_1[i] == align_2[i]:
+                print('|', end='')
 
-    # Matches / possible matches aka string len
-    print("\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
-        matches/seq_1_length * 100))
+                matches += 1
+            else:
+                hamming_distance += 1
+
+                print(' ', end='')
+
+        print()
+        print(align_2)
+
+    # Percent identity is caluclated by using # of matches divided by the largest sequence length.
+    # The argument beeing that the longest sequence defines the maximum number of possible matches that exists
+    # in the given scenario.
+    match_p = matches/max(len(seq_1), len(seq_2)) * 100
+
+    print(
+        "\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(match_p))
     print("\x1b[48;5;57mHamming distance: {}\x1b[0m\n".format(hamming_distance))
 
 

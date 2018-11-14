@@ -57,7 +57,6 @@ def main():
                 optimal_location = (i, j)
 
     print_matrix(seq_1, seq_2, score_m, "score")
-    print_matrix(seq_1, seq_2, trace_m, "trace")
 
     align_1 = ''
     align_2 = ''
@@ -103,9 +102,11 @@ def main():
     print("\noptimal score location: {}".format(optimal_location))
     print("optimal score: {}".format(optimal_score))
 
+    match_p = matches/max(len(seq_1), len(seq_2)) * 100
+
     # Matches / possible matches aka string len
-    print("\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(
-        matches/max(seq_1_length, seq_2_length) * 100))
+    print(
+        "\n\x1b[7mPercent matching for DNA sequences: {0:0.2f}%\x1b[0m".format(match_p))
     print("\x1b[48;5;57mHamming distance: {}\x1b[0m\n".format(hamming_distance))
 
 
