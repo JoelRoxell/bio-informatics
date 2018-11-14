@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import string
+import copy
 
 MATCH_SCORE = 2
 GAP_PENALTY = 2
@@ -12,28 +14,26 @@ DIAG = 3
 
 
 def main():
-    """ global alignment alg. (needleman-wunsch)
-    """
-
-    seq_1 = 'ATCGAT'  # ""
-    seq_2 = 'ATACGT'  # ""
+    seq_1 = 'ATCGAT'  # "ATTA"  #
+    seq_2 = 'ATACGT'  # "ATTTTA"  #
 
     seq_1_length = len(seq_1) + 1
     seq_2_length = len(seq_2) + 1
 
-    score_m = np.zeros((seq_1_length, seq_1_length))
-    trace_m = np.zeros((seq_1_length, seq_2_length))
+    score_m = np.zeros((seq_1_length, seq_2_length))
+    trace_m = np.empty((seq_1_length, seq_2_length), dtype=object)
 
-    if os.getenv("LOCAL") is None:
-        for i in range(1, seq_1_length):
-            for j in range(1, seq_2_length):
-                score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
-                score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
+    optimal_score = 0
+    optimal_location = None
+
+    for i in range(1, seq_1_length):
+        for j in range(1, seq_2_length):
+            score_m[i][0] = score_m[i-1][0] - GAP_PENALTY
+            score_m[0][j] = score_m[0][j-1] - GAP_PENALTY
 
     for i in range(1, seq_1_length):
         for j in range(1, seq_2_length):
             diagonal_score = 0
-            direction = DIAG
 
             if seq_1[i - 1] == seq_2[j-1]:
                 diagonal_score = score_m[i-1, j-1] + MATCH_SCORE
@@ -47,13 +47,22 @@ def main():
                         pre_up_score,
                         pre_left_score)
 
-            if score == pre_up_score:
-                direction = UP
-            elif score == pre_left_score:
-                direction = LEFT
+            # TODO: if score is equal more than one dir, store arr
+            # print(score, pre_up_score, pre_left_score, diagonal_score)
 
-            trace_m[i][j] = direction
-            score_m[i][j] = max(score, 0) if os.getenv("LOCAL") else score
+            dirs = []
+
+            if(score == diagonal_score):
+                dirs.append(DIAG)
+
+            if score == pre_up_score:
+                dirs.append(UP)
+
+            if score == pre_left_score:
+                dirs.append(LEFT)
+
+            trace_m[i][j] = dirs
+            score_m[i][j] = score
 
     print("Score matrix")
 
@@ -70,7 +79,6 @@ def main():
         else:
             print(seq_1[i - 1], end='')
             # print(trace_m)
-
         for j in range(0, seq_2_length):
             print('{:>5}'.format(int(score_m[i][j])), end='')
 
@@ -93,54 +101,71 @@ def main():
             # print(trace_m)
 
         for j in range(0, seq_2_length):
-            pos = direction = int(trace_m[i][j])
-            if direction == LEFT:
-                pos = 'L'
-            elif direction == UP:
-                pos = 'U'
-            elif direction == DIAG:
-                pos = 'D'
+            directions = trace_m[i][j]
+
+            if directions is None:
+                pos = ' '
+            elif len(directions) == 1:
+                pos = directions[0]
+            else:
+                pos = '|'.join(str(x) for x in directions)
+                # print(pos)
 
             print('{:>5}'.format(pos), end='')
 
         print()
     print()
 
-    align_1 = ''
-    align_2 = ''
-    i = seq_1_length - 1
-    j = seq_2_length - 1
+    solutions = []
 
-    while(trace_m[i][j]):
-        current = trace_m[i][j]
+    def trace_back(location, trace, a, b):
+        i, j = location
+        current = trace[i][j]
 
-        if current == DIAG:
-            align_1 += seq_1[i - 1]
-            align_2 += seq_2[j - 1]
-            i -= 1
-            j -= 1
-        elif current == LEFT:
-            align_1 += '-'
-            align_2 += seq_2[j - 1]
-            j -= 1
-        else:  # up
-            align_1 += seq_1[i - 1]
-            align_2 += '-'
-            i -= 1
+        if (current is None):
+            print(a, b)
+            solutions.append([a, b])
+
+            return
+
+        if len(current) == 1:
+            if current[0] == DIAG:
+                a += seq_1[i - 1]
+                b += seq_2[j - 1]
+                i -= 1
+                j -= 1
+            elif current[0] == LEFT:
+                a += '-'
+                b += seq_2[j - 1]
+                j -= 1
+            else:  # up
+                a += seq_1[i - 1]
+                b += '-'
+                i -= 1
+
+            trace_back((i, j), trace, a, b)
+        else:
+            trace_copy = trace.copy()
+
+            for direction in current:
+                trace_copy[i][j] = [direction]
+                trace_back(location, trace_copy, a, b)
+
+    trace_back((seq_1_length - 1, seq_2_length - 1), trace_m, "", "")
+
+    return
+    # TODO: pretty print solutions
 
     # Reverse the collected results
     align_1 = align_1[::-1]
     align_2 = align_2[::-1]
-
-    # print(seq_1)
-    # print(seq_2)
 
     # Display results and matches
     print(align_1)
     matches = 0
     hamming_distance = 0
 
-    for i in range(0, seq_1_length):
+    for i in range(0, len(align_1)):
         if align_1[i] == align_2[i]:
             print('|', end='')
             matches += 1
