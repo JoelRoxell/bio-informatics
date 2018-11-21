@@ -4,20 +4,22 @@ import numpy as np
 from scipy.spatial.distance import squareform, pdist
 import matplotlib.pyplot as plt
 from itertools import cycle
-
+import sys
+import re
 
 cycol = cycle('bgrcmk')
+next(cycol)  # skip blue...
 
 
 def find_atoms(atom_type, file_dbp_path):
     """Finds all CA atoms.
 
     Arguments:
-        atom_type {[type]} -- [description]
-        file_dbp_path {[type]} -- [description]
+        atom_type {list} -- list of all atom tuples.
+        file_dbp_path {str} -- path fo dbp file.
 
     Returns:
-        [type] -- [description]
+        list -- list of CA tuples (coordinates).
     """
 
     atom_list = []
@@ -41,10 +43,10 @@ def get_positions(atom_list):
     """Extracts the x,y,z position for each atom.
 
     Arguments:
-        atom_list {[type]} -- [description]
+        atom_list {list} -- atom list
 
     Returns:
-        [type] -- [description]
+        [list] -- x, y, z
     """
 
     atoms = []
@@ -52,7 +54,6 @@ def get_positions(atom_list):
     for atom in atom_list:
         candidate = atom[5:9]
         atoms.append(candidate)
-        # print(candidate)
 
     return atoms
 
@@ -61,11 +62,11 @@ def distance(a, b):
     """Returns distance for two points.
 
     Arguments:
-        a {[type]} -- [description]
-        b {[type]} -- [description]
+        a {x, y, z} -- atom in space
+        b {x, y, z} -- atom in space
 
     Returns:
-        [type] -- [description]
+        float -- distance between atoms
     """
 
     a_coord = np.array(a[1:], dtype='float')
@@ -79,13 +80,13 @@ def contacts(positions, threshold=12):
     """Find contacts between points with a specified threshold.
 
     Arguments:
-        positions {[type]} -- [description]
+        positions {list} -- All CA positions.
 
     Keyword Arguments:
-        threshold {int} -- [description] (default: {12})
+        threshold {int} -- Distance limit that should count as a contact. (default: {12})
 
     Returns:
-        [type] -- [description]
+        list -- All combinations of atom contacts.
     """
 
     data = []
@@ -98,12 +99,13 @@ def contacts(positions, threshold=12):
             dist = distance(current, b)
 
             if dist <= threshold:
-                data.append([int(current[0]), int(b[0])])
+                data.append([int(re.sub('[A-Z]', '', current[0])),
+                             int(re.sub('[A-Z]', '', b[0]))])
 
     return data
 
 
-def paint(data, size, splits):
+def paint(data, size, splits, file_name):
     n1 = np.asarray(data)
     x = n1[:, 0]
     y = n1[:, 1]
@@ -111,25 +113,26 @@ def paint(data, size, splits):
     line = np.linspace(0, size, num=size)
 
     # print(line)
-    plt.plot(x, y, 'bo', markersize=1)
+    plt.plot(x, y, 'bo', markersize=1, label="CA")
 
-    for split in splits:
-
+    for i in range(len(splits)):
+        split = splits[i]
         color = next(cycol)
-
         split_arr = [split] * size
-        plt.plot(split_arr, line, c=color)
+
+        plt.plot(split_arr, line,
+                 label="split{}: residue {}".format(i + 1, split), c=color)
         plt.plot(line, split_arr, c=color)
 
     plt.axis([0, size, 0, size])
     plt.grid()
+    plt.title(file_name)
+    plt.legend()
     plt.show()
 
 
 def find_split(positions, atom_list):
     contact_points = contacts(positions)
-
-    # print(positions)
     split_value = 0
     split_residue_index = 0
 
@@ -138,7 +141,8 @@ def find_split(positions, atom_list):
     i = 0
 
     for CAk in atom_list:
-        current = int(CAk[5])
+        test = re.sub('[A-Z]', '', CAk[5])
+        current = int(test)
 
         a = np.where((dist[:, 0] < current) & (dist[:, 1] < current))[0].size
         b = np.where((dist[:, 0] > current) & (dist[:, 1] > current))[0].size
@@ -154,15 +158,13 @@ def find_split(positions, atom_list):
             split_value = score
             split_residue_index = current
             index = i
-            # print(score, split_value, current)
 
         i += 1
 
     return index, split_value, split_residue_index
 
 
-def find_rec(positions, atom_list):
-
+def find_components(positions, atom_list):
     positions_inner = get_positions(atom_list)
 
     i, split_value, split_residue_index_i = find_split(
@@ -182,8 +184,8 @@ def find_rec(positions, atom_list):
     positions_a = get_positions(domain_a)
     positions_b = get_positions(domain_b)
 
-    find_rec(positions_a, domain_a)
-    find_rec(positions_b, domain_b)
+    find_components(positions_a, domain_a)
+    find_components(positions_b, domain_b)
 
 
 splits = []
@@ -192,13 +194,14 @@ MIN_SPLIT_SCORE = 10
 
 
 def main():
-    atom_list = find_atoms('CA', os.path.abspath('4GAF_B.pdb'))  # 1HZH_H.pdb
+    file_name = sys.argv[1]
+    atom_list = find_atoms('CA', os.path.abspath(
+        '{}'.format(file_name)))
     contact_points = contacts(get_positions(atom_list))
     positions = get_positions(atom_list)
 
-    find_rec(positions, atom_list)
-
-    paint(contact_points, len(positions), splits)
+    find_components(positions, atom_list)
+    paint(contact_points, len(positions), splits, file_name)
 
 
 if __name__ == "__main__":
