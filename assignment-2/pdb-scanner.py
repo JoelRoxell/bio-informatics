@@ -132,6 +132,13 @@ def paint(data, size, splits, file_name):
 
 
 def find_split(positions, atom_list):
+    """Compute DOMAK
+
+    Arguments:
+        positions {list} -- coordinates
+        atom_list {list} -- residues
+    """
+
     contact_points = contacts(positions)
     split_value = 0
     split_residue_index = 0
@@ -165,6 +172,14 @@ def find_split(positions, atom_list):
 
 
 def find_components(positions, atom_list):
+    """Determines where the optimal slipts are for each component
+    based on DOMAK and MDS & MSV.
+
+    Arguments:
+        positions {list} -- coordinates
+        atom_list {list} -- residues
+    """
+
     positions_inner = get_positions(atom_list)
 
     i, split_value, split_residue_index_i = find_split(
@@ -184,25 +199,36 @@ def find_components(positions, atom_list):
     positions_a = get_positions(domain_a)
     positions_b = get_positions(domain_b)
 
+    # Determine if we can find sub-components on each side of the new split.
     find_components(positions_a, domain_a)
     find_components(positions_b, domain_b)
 
 
 splits = []
 MIN_RESIDUE = 40
-MIN_SPLIT_SCORE = 10
+MIN_SPLIT_SCORE = 9.5
 
 
 def main():
     file_name = sys.argv[1]
+
+    # Extract all CA atoms form the pdb file.
     atom_list = find_atoms('CA', os.path.abspath(
         '{}'.format(file_name)))
+
+    # Filter based on distance.
     contact_points = contacts(get_positions(atom_list))
+
+    # Collect the actual (x,y,z) points for each atom.
     positions = get_positions(atom_list)
 
+    # Recursively find all components in the structure based on MDS & MSV.
     find_components(positions, atom_list)
+
+    # Display diagram.
     paint(contact_points, len(positions), splits, file_name)
 
+    # Output result to cli.
     print("Found {} splits which would result in {} domains".format(
         len(splits), len(splits) + 1))
 
