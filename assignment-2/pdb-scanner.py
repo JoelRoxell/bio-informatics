@@ -203,6 +203,9 @@ def main():
     find_components(positions, atom_list)
     paint(contact_points, len(positions), splits, file_name)
 
+    print("Found {} splits which would result in {} domains".format(
+        len(splits), len(splits) + 1))
+
 
 if __name__ == "__main__":
     main()
