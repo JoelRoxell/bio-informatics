@@ -35,6 +35,8 @@ def read_file(file_path, data=[]):
 def determine_path(atom, pre, atom_list, path=''):
     ID, coordinates = atom
 
+    best_path = ''
+
     for next_atom in atom_list:
         next_ID, next_coordinates = next_atom
 
@@ -48,14 +50,12 @@ def determine_path(atom, pre, atom_list, path=''):
         distance = distance_between(coordinates, next_coordinates)
 
         if distance <= 3.9 and distance > 0:
-            path += next_ID
+            sub_path = determine_path(next_atom, atom, atom_list, path)
 
-            new_path = determine_path(next_atom, atom, atom_list, path)
+            if len(best_path) <= len(sub_path):
+                best_path = sub_path
 
-            if len(path) < len(new_path):
-                path = new_path
-
-    return path
+    return "{},{}".format(ID, best_path)
 
 
 def main():
@@ -67,8 +67,9 @@ def main():
 
         test_path = determine_path(atom, None, atom_list, path=ID)
 
-        if len(best_path) < len(test_path):
-            print('found a new path')
+        print(test_path)
+
+        if len(test_path) >= len(best_path):
             best_path = test_path
 
     print(best_path)
