@@ -1,14 +1,17 @@
 import os
 import string
 import numpy as np
+import sys
+import math
+
+# Joel Roxell
 
 
 def distance_between(atom_1, atom_2):
-    current_atom = np.array(atom_1, dtype='float')
-    next_atom = np.array(atom_2, dtype='float')
-    distance = np.linalg.norm(current_atom - next_atom)
+    x1, y1, z1 = atom_1
+    x2, y2, z2 = atom_2
 
-    return distance
+    return math.sqrt(((x2-x1) ** 2) + ((y2-y1) ** 2) + ((z2-z1) ** 2))
 
 
 def parse_coordinates(line):
@@ -49,7 +52,7 @@ def determine_path(atom, pre, atom_list, path=''):
 
         distance = distance_between(coordinates, next_coordinates)
 
-        if distance <= 3.9 and distance > 0:
+        if distance <= 3.9 and distance > 3.6:
             sub_path = determine_path(next_atom, atom, atom_list, path)
 
             if len(best_path) <= len(sub_path):
@@ -67,12 +70,18 @@ def main():
 
         test_path = determine_path(atom, None, atom_list, path=ID)
 
-        print(test_path)
-
         if len(test_path) >= len(best_path):
             best_path = test_path
 
     print(best_path)
+
+    atom_list = best_path.split(',')
+    atom_list.pop()
+
+    print('total number of alpha-carbons: {}'.format(len(atom_list)))
+
+    for atom in atom_list:
+        print(atom)
 
 
 if __name__ == '__main__':
